@@ -1,8 +1,8 @@
 # built-in
+import json
 from collections import defaultdict
 from distutils.core import run_setup
 from io import BytesIO, StringIO
-import json
 from logging import getLogger
 from pathlib import Path
 from typing import Optional

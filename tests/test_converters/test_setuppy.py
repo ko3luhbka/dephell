@@ -3,12 +3,9 @@ from pathlib import Path
 from random import shuffle
 
 # external
-from dephell_discover import (
-    Data,
-    Package,
-)
-from dephell_links import VCSLink
 import pytest
+from dephell_discover import Data, Package
+from dephell_links import VCSLink
 
 # project
 from dephell.converters.setuppy import SetupPyConverter
@@ -97,13 +94,15 @@ def test_package_data_is_sorted_across_runs(number_of_runs):
         Data(
             path=Path(path[0]),
             ext='.txt',
-            package=Package(path=Path(path[1]),
-            root=Path('.'),
-            module=path[2])
+            package=Package(
+                path=Path(path[1]),
+                root=Path('.'),
+                module=path[2],
+            ),
         ) for path in package_paths
     }
     root = converter.load(path)
-    setattr(root.package, 'data', package_data)
+    root.package.data = package_data
     reqs = Requirement.from_graph(graph=resolver.graph, lock=False)
     content_package_data = converter.dumps(reqs=reqs, project=root)
     assert package_data_sorted.strip() in content_package_data
