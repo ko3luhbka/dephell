@@ -2,6 +2,7 @@
 from collections import defaultdict
 from distutils.core import run_setup
 from io import BytesIO, StringIO
+import json
 from logging import getLogger
 from pathlib import Path
 from typing import Optional
@@ -154,7 +155,6 @@ class SetupPyConverter(BaseConverter):
                     marker=marker,
                     envs=envs,
                 ))
-
         return root
 
     def dumps(self, reqs, project: RootDependency, content=None) -> str:
@@ -213,7 +213,13 @@ class SetupPyConverter(BaseConverter):
         data = defaultdict(list)
         for rule in project.package.data:
             data[rule.module].append(rule.relative)
-        data = {package: sorted(paths) for package, paths in data.items()}
+
+        data = json.dumps(
+            {package: sorted(paths) for package, paths in data.items()},
+            sort_keys=True,
+        )
+        # replace double qoutes with single ones to provide `setup.py`'s consistency
+        data = data.replace('"', "'")
         content.append(('package_data', data))
 
         # depedencies
@@ -243,8 +249,15 @@ class SetupPyConverter(BaseConverter):
         else:
             readme = "readme = ''"
 
-        content = ',\n    '.join('{}={!r}'.format(name, value) for name, value in content)
-        content = TEMPLATE.format(kwargs=content, readme=readme)
+        content_items = []
+        for name, value in content:
+            content_item_template = '{}={!r}'
+            # get `__str__` of `package_data` string value to get rid of outer quotes
+            if name == 'package_data':
+                content_item_template = '{}={!s}'
+            content_items.append(content_item_template.format(name, value))
+        content_items_str = ',\n    '.join(content_items)
+        content = TEMPLATE.format(kwargs=content_items_str, readme=readme)
 
         # beautify
         if FormatCode is not None:
